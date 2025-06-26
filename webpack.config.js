@@ -18,11 +18,11 @@ module.exports = async (env, options) => {
   const config = {
     devtool: "source-map",
     entry: {
-      polyfill: ["core-js/stable", "regenerator-runtime/runtime"],
-      react: ["react", "react-dom"],
+      // polyfill: ["core-js/stable", "regenerator-runtime/runtime"],
+      // react: ["react", "react-dom"],
       taskpane: {
         import: ["./src/taskpane/index.tsx", "./src/taskpane/taskpane.html"],
-        dependOn: "react",
+        // dependOn: "react",
       },
       commands: "./src/commands/commands.ts",
     },
@@ -31,6 +31,18 @@ module.exports = async (env, options) => {
     },
     resolve: {
       extensions: [".ts", ".tsx", ".html", ".js"],
+    },
+    optimization: {
+      runtimeChunk: 'single',
+      splitChunks: {
+        cacheGroups: {
+          defaultVendors: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendors',
+            chunks: 'all',
+          },
+        },
+      },
     },
     module: {
       rules: [

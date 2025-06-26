@@ -24,9 +24,28 @@ const useStyles = makeStyles({
     },
 });
 
-const FetchDataButton: React.FC<{}> = () => {
+function RenderTree({nodes, indent = 0}: { nodes: any[], indent?: number }) {
+  return (
+      <ul>
+          {nodes.map((node, i) => (
+              <li key={i} style={{ marginLeft: indent * 10 }}>
+                  {node.type === 'dir' ? (
+                      <>
+                          📁 {node.name}
+                          <RenderTree nodes={node.children} indent={indent + 1} />
+                      </>
+                  ) : (
+                      <>📄 {node.name}</>
+                  )}
+              </li>
+          ))}
+      </ul>
+  );
+}
 
-    const READ_TOKEN = `placeholder`
+export default function FetchDataButton() {
+
+    const READ_TOKEN = `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`
 
     const [structure, setStructure] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
@@ -87,34 +106,13 @@ const FetchDataButton: React.FC<{}> = () => {
 
     const styles = useStyles();
 
-
-    const renderTree = (nodes: any[], indent = 0) => (
-        <ul>
-            {nodes.map((node, i) => (
-                <li key={i} style={{ marginLeft: indent * 10 }}>
-                    {node.type === 'dir' ? (
-                        <>
-                            📁 {node.name}
-                            {renderTree(node.children, indent + 1)}
-                        </>
-                    ) : (
-                        <>📄 {node.name}</>
-                    )}
-                </li>
-            ))}
-        </ul>
-    );
-
     return (
         <div>
             <Button appearance="primary" disabled={false} size="large" onClick={handleFetchClick}>
-                Fetch data
+                Fetch data sad
             </Button>
             {error && <p style={{ color: 'red' }}>{error}</p>}
-            {renderTree(structure)}
+            <RenderTree nodes={structure} />
         </div>
     );
 };
-
-
-export default FetchDataButton;
