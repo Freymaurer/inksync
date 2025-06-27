@@ -10,7 +10,7 @@ export default defineConfig(async () => {
   return {
     plugins: [react()],
     root: 'src/taskpane',
-    base: '/',
+    base: '/inksync/',
     build: {
       outDir: 'dist',
       emptyOutDir: true,

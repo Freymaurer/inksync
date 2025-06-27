@@ -12,6 +12,7 @@
     "dev_server_port": 3000
   },
   "scripts": {
+    "build": "vite build",
     "lint": "office-addin-lint check",
     "lint:fix": "office-addin-lint fix",
     "prettier": "office-addin-lint prettier",
@@ -20,7 +21,9 @@
     "start": "office-addin-debugging start manifest.xml --dev-server vite",
     "stop": "office-addin-debugging stop manifest.xml",
     "validate": "office-addin-manifest validate manifest.xml",
-    "watch": "vite"
+    "watch": "vite",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d src/taskpane/dist"
   },
   "dependencies": {
     "@fluentui/react-components": "^9.55.1",
@@ -40,6 +43,7 @@
     "acorn": "^8.11.3",
     "eslint-plugin-office-addins": "^4.0.3",
     "eslint-plugin-react": "^7.28.0",
+    "gh-pages": "^6.3.0",
     "office-addin-cli": "^2.0.3",
     "office-addin-debugging": "^6.0.3",
     "office-addin-dev-certs": "^2.0.3",

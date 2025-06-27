@@ -5,16 +5,21 @@ import SvgInsertion from "./SvgInsertion";
 import FetchDataButton from "./FetchDataButton";
 import Navbar from "./Navbar";
 import DisplayFileInfoBar from "./DisplayFileInfoBar";
+import SVGGrid from "./SVG/SVGGrid";
 
 const useStyles = makeStyles({
   root: {
     minHeight: "100vh",
-  },
-  mainContainer: {
-    width: "100%",
-    height: "100%",
+    maxHeight: "100vh",
     display: "flex",
     flexDirection: "column",
+  },
+  mainContainer: {
+    display: "flex",
+    flexGrow: 1,
+    minHeight: "unset",
+    flexDirection: "column",
+    overflowY: "auto",
     padding: "20px",
   }
 });
@@ -27,10 +32,11 @@ function App({}) {
       <Navbar />
       <DisplayFileInfoBar />
       <div className={styles.mainContainer}>
-        <SvgInsertion insertSvg={insertImage} />
+        <SVGGrid />
+        {/* <SvgInsertion insertSvg={insertImage} />
         <Button appearance="primary" size="large" onClick={() => insertText("Hello, world!")} >
           Insert Text
-        </Button>
+        </Button> */}
       </div>
     </div>
   );
