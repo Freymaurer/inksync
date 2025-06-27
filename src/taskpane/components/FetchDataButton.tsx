@@ -1,100 +1,119 @@
 import * as React from "react";
 import { useState } from "react";
-import { Button, Field, Textarea, tokens, makeStyles } from "@fluentui/react-components";
+import { Button, Field, Text, tokens, makeStyles } from "@fluentui/react-components";
+import { ConfigContext, ErrorContext, RepoContext, type RepoFile } from "../context/Context";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogSurface,
+  DialogTitle,
+  DialogBody,
+  DialogActions,
+  DialogContent,
+  Tooltip
+} from "@fluentui/react-components";
+import { Spinner } from "@fluentui/react-components";
 
 /* global HTMLTextAreaElement */
 
 const useStyles = makeStyles({
-    instructions: {
-        fontWeight: tokens.fontWeightSemibold,
-        marginTop: "20px",
-        marginBottom: "10px",
-    },
-    textPromptAndInsertion: {
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-    },
-    textAreaField: {
-        marginLeft: "20px",
-        marginTop: "30px",
-        marginBottom: "20px",
-        marginRight: "20px",
-        maxWidth: "50%",
-    },
+    container: {
+    "> div": { padding: "20px" },
+  },
 });
 
-function RenderTree({nodes, indent = 0}: { nodes: any[], indent?: number }) {
-  return (
-      <ul>
-          {nodes.map((node, i) => (
-              <li key={i} style={{ marginLeft: indent * 10 }}>
-                  {node.type === 'dir' ? (
-                      <>
-                          📁 {node.name}
-                          <RenderTree nodes={node.children} indent={indent + 1} />
-                      </>
-                  ) : (
-                      <>📄 {node.name}</>
-                  )}
-              </li>
-          ))}
-      </ul>
-  );
+interface FetchDataButtonProps {
+    CustomButton?: React.FunctionComponent<{ onClick: () => void, disabled?: boolean }>;
 }
 
-export default function FetchDataButton() {
+function DisplayLoadingDialog({ loading, parsedFileCount }: { loading: boolean; parsedFileCount: number }) {
+    const styles = useStyles();
+    return (
+        <Dialog open={loading}>
+            <DialogSurface>
+                <DialogBody>
+                    <DialogTitle>Loading...</DialogTitle>
+                    <DialogContent>
+                        <div className={styles.container}>
+                          <Spinner labelPosition="below" label={parsedFileCount + " files found"} />
+                        </div>
+                    </DialogContent>
+                </DialogBody>
+            </DialogSurface>
+        </Dialog>
+    );
+}
 
-    const READ_TOKEN = `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`
+export default function FetchDataButton({CustomButton}: FetchDataButtonProps) {
 
-    const [structure, setStructure] = useState<any[]>([]);
+    const {setState: setFiles} = React.useContext(RepoContext);
+    const {state: config} = React.useContext(ConfigContext);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
+    const [parsedFileCount, setParsedFilecount] = useState(0);
+    const {setState: setError} = React.useContext(ErrorContext);
+    const [visible, setVisible] = React.useState(false);
+
+    function pathToTags(path) {
+      const parts = path.split('/');
+      // Remove the file name (last segment)
+      return parts;
+    }
 
     const fetchRepoTree = async (
         owner: string,
         repo: string,
+        pat: string,
         path: string = '',
         depth: number = 0
-    ): Promise<any[]> => {
+    ): Promise<RepoFile[]> => {
         const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
-        console.log(`Fetching URL: ${url}`);
         const res = await fetch(url, {
             headers: {
-                Authorization: `Bearer ${READ_TOKEN}`,
+                Authorization: `Bearer ${pat}`,
                 Accept: 'application/vnd.github.v3+json',
             },
         });
-        console.log(`Response status: ${res.status}`);
         if (!res.ok) {
             throw new Error(`GitHub API error: ${res.status}`);
         }
-        console.log(`parsing json from response`);
 
         const data = await res.json();
 
-        console.log(`Parsed data:`, data);
+        const files: RepoFile[] = [];
 
-        const result = await Promise.all(
-            data.map(async (item: any) => {
-                if (item.type === 'dir') {
-                    const children = await fetchRepoTree(owner, repo, item.path, depth + 1);
-                    return { name: item.name, type: 'dir', children };
-                } else {
-                    return { name: item.name, type: 'file' };
-                }
-            })
-        );
+        for (const item of data) {
+          if (item.type === 'dir') {
+            const children = await fetchRepoTree(owner, repo, pat, item.path, depth + 1);
+            files.push(...children);
+          } else if (item.type === 'file') {
+            // Only process SVG files
+            if (!item.name.endsWith('.svg')) {
+              continue;
+            }
+            const tags = pathToTags(path);
+            files.push({
+              name: item.name,
+              path: item.path,
+              download_url: item.download_url,
+              tags,
+            });
+            setParsedFilecount((prevCount) => prevCount + 1);
+          }
+        }
 
-        return result;
+        return files;
     };
 
     const handleFetchClick = async () => {
         setLoading(true);
-        setError('');
+        setFiles([]); // Clear previous files
+        setParsedFilecount(0);
         try {
-            const tree = await fetchRepoTree('freymaurer', 'svg-collection-poc');
-            setStructure(tree);
+            if (!config.owner || !config.repo || !config.pat) {
+                throw new Error('Repository configuration is incomplete. Please set owner, repo, and PAT.');
+            }
+            const files = await fetchRepoTree(config.owner, config.repo, config.pat);
+            setFiles(files);
         } catch (err: any) {
             console.error('Error fetching repository tree:', err);
             setError(err.message || 'Failed to fetch');
@@ -103,16 +122,24 @@ export default function FetchDataButton() {
         }
     };
 
-
-    const styles = useStyles();
+    const isDisabled = !config.owner || !config.repo || !config.pat;
 
     return (
-        <div>
-            <Button appearance="primary" disabled={false} size="large" onClick={handleFetchClick}>
-                Fetch data sad
-            </Button>
-            {error && <p style={{ color: 'red' }}>{error}</p>}
-            <RenderTree nodes={structure} />
-        </div>
+        <Tooltip 
+          content="Configure target repo before syncing images!" 
+          relationship="label" 
+          visible={visible && isDisabled}
+          onVisibleChange={(_ev, data) => setVisible(data.visible)}>
+            <div>
+              {CustomButton ? (
+                <CustomButton onClick={handleFetchClick} disabled={isDisabled} />
+              ) : (
+                <Button appearance="primary" onClick={handleFetchClick} disabled={isDisabled}>
+                  Fetch Data
+                </Button>
+              )}
+              <DisplayLoadingDialog loading={loading} parsedFileCount={parsedFileCount} />
+            </div>
+        </Tooltip>
     );
 };
